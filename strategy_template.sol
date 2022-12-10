@@ -4,6 +4,10 @@
 THIS TEMPLATE USES THE IERC4626 INTERFACE FROM: https://github.com/fei-protocol/ERC4626/blob/main/src/interfaces/IERC4626.sol
 I have flattened this interface and Transmission11's Solmate ERC20 contract into this contract.
 
+Strategies would normally be automated with multiple layers.
+These calls are the core logic for but would be used in larger functions meant to zap into a strategy.
+
+
 */
 
 pragma solidity >=0.8.0;
