@@ -62,7 +62,7 @@ Make sure this properly updates the 'underlying_in_strategy' value held by the v
 		Ensure that withdrawal correctly updates underlying.
 		Ensure that the vault shares are still proportional 
 
-//CONCERN: users depositing and entering in the same block? This shouldn't be an issue due to updating in transactions
+//CONCERN: users depositing and entering in the same block? This shouldn't be an issue?
 
 
 Some security measures to check using a secondary address:
