@@ -602,10 +602,10 @@ library SafeTransferLib {
 
 pragma solidity >=0.8.0;
 
+/// @notice Manually Operated 4626 Yield Vault
+/// @author Originally from Solmate(https://github.com/transmissions11/solmate/blob/main/src/mixins/ERC4626.sol), modified and edited by Laser420
+///
 
-
-/// @notice Minimal ERC4626 tokenized Vault implementation.
-/// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/mixins/ERC4626.sol)
    contract ERC4626 is ERC20 {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
