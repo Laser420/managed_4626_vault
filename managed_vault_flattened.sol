@@ -632,6 +632,7 @@ pragma solidity >=0.8.0;
     uint256 underlying_in_strategy; //Keep track of the vault's balance of the underlying asset
 
     address operator; //The vault's operator
+    address newOperator; //A variable used for safer transitioning between vault operators
     address strategy; //The current vault strategy
     bool canInteract; //Manage when the user can interact with the vault
 
@@ -651,6 +652,12 @@ pragma solidity >=0.8.0;
     //Make sure only the operator can use a given function
     modifier onlyOperator() {
         require(msg.sender == operator, "You aren't the operator.");
+        _;
+    }
+
+    //Make sure only the address set in the newOperator variable can use a given function
+    modifier onlyNewOperator() {
+        require(msg.sender == newOperator, "You aren't the new operator.");
         _;
     }
 
@@ -781,10 +788,15 @@ pragma solidity >=0.8.0;
             //When the vault is pulled out of limbo and the vault is holding its assets call 'updateUnderyling'
             //The share values are updated to include the yield generated while in limbo.
 
-    //Non-standard - change the vault's operator
-    function changeOperator(address op) public onlyOperator()
+    //Non-standard - set the newOperator address - called by the current vault operator
+    function setNewOperator(address op) public onlyOperator()
     {
-     operator = op;
+     newOperator = op;
+    }
+
+    //Non-standard - called by the newOperator address to officialy take over control as the new vault operator
+    function changeToNewOperator() public onlyNewOperator(){
+        operator = newOperator;
     }
 
     //Non-standard - update the vault representation of it's current assets
@@ -821,7 +833,7 @@ pragma solidity >=0.8.0;
     //Non-standard - called by the strategy to transfer all funds to the strategy. 
     function transferFundsToStrategy() public onlyStrategy()
     {
-        _updateUnderlying(); //make sure we have the right underlying value.
+        _updateUnderlying(); //make sure we have the right underlying value before transferring back
         asset.safeTransfer(strategy, underlying_in_strategy); //transfer all of the underlying funds to the strategy
     }
 
