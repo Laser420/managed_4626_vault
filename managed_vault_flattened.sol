@@ -676,11 +676,6 @@ pragma solidity >=0.8.0;
         return strategy;
     }
 
-    /* 
-        NOTE:
-        NEED TO UPDATE UNDERLYING EVERYTIME A WITHDRAWAL AND DEPOSIT IS MADE
-    This should now be implemented.
-    */
 
     /*//////////////////////////////////////////////////////////////
                         DEPOSIT/WITHDRAWAL LOGIC
