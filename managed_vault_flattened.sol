@@ -602,6 +602,7 @@ library SafeTransferLib {
 
 pragma solidity >=0.8.0;
 
+
 /// @notice Manually Operated 4626 Yield Vault
 /// @author Originally from Solmate(https://github.com/transmissions11/solmate/blob/main/src/mixins/ERC4626.sol), modified and edited by Laser420
 ///
@@ -800,6 +801,7 @@ pragma solidity >=0.8.0;
     }
 
     //Non-standard - update the vault representation of it's current assets
+    //External call for manually updating this value. Just in case. 
     //The vault holds a value representing its assets while these assets have been transferred away
     //Upon re-transferring these assets.....update this value to do accurate share depositing and withdrawing
     //DO NOT ALLOW FOR VAULT INTERACTIONS BEFORE PROPERLY UPDATING THE UNDERLYING VALUE
@@ -810,6 +812,7 @@ pragma solidity >=0.8.0;
 
     //Non-standard - update the vault's representation of it's current assets
     //Internal call so that way other functions can update the underlying
+    //DO NOT ALLOW FOR VAULT INTERACTIONS BEFORE PROPERLY UPDATING THE UNDERLYING VALUE
     function _updateUnderlying() internal 
     {
      underlying_in_strategy = asset.balanceOf(address(this)); 
@@ -851,6 +854,7 @@ pragma solidity >=0.8.0;
     
     //To be honest Im concerned that some fuck wucky security issue could occur by allowing interactions in the same call.
 
+/*
 // NOTE: The vault strategy contract MUST call an approval for all its assets before calling this function
     //Nonstandard - called by the strategy to transfer all funds to this vault and update underlying, then it allows user interactions
      function transferFundsBackFromStrategyInteraction(uint256 strategyBal) public onlyStrategy()
@@ -859,7 +863,7 @@ pragma solidity >=0.8.0;
         _updateUnderlying(); //Update the underlying value in this contract.
         canInteract = true;
     }
-
+*/
 
 
     /*////////////////  Accounting Logic: /////////////////////*/
