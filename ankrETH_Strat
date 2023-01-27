@@ -74,7 +74,18 @@ contract strategy_template {
     //After this works...implement functional ownership of strategies...
     //Also ensure proper ownership of the vault
 
+    //values for strategy to strategy transfer....newstrategy 
 
+    /*
+    Vault has another address variable: newStrategy
+        Ability to see this address through a checker function on the vault
+    Vault then has a function: newStrategyChange
+        This sets a new newStrategy address
+
+    This strategy has a function that can be called by only the newStrategy address
+        Using a modifier checking if the caller matches the newStrategy set on the vault
+    This function sends the newStrategy all of the strategy's assets
+    */
 
 }
 
