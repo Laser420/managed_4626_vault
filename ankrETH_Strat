@@ -59,7 +59,7 @@ contract strategy_template {
         returnAssetsToVault();
     }
 
-    /*Process of pain
+    /* PLANNING FOR WHAT THIS VAULT NEEDS TO DO IN PARTICULAR WITH ANKRETH
         Get assets from the vault - WETH from vault
         Unwrap assets - WETH into ETH
         Exchange assets on Curve - ETH exchanged into ankrETH
@@ -74,9 +74,7 @@ contract strategy_template {
     //After this works...implement functional ownership of strategies...
     //Also ensure proper ownership of the vault
 
-    //values for strategy to strategy transfer....newstrategy 
-
-    /*
+    /* PLANNING FOR TRANSFERRING ASSETS DIRECTLY STRATEGY TO STRATEGY:
     Vault has another address variable: newStrategy
         Ability to see this address through a checker function on the vault
     Vault then has a function: newStrategyChange
