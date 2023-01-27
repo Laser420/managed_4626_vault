@@ -6,20 +6,28 @@ contract strategy_template {
     address vaultAddress;
     IERC4626 vaultInterface;
 
-    address assetAddress;
-    ERC20 assetInterface;
+    address assetAddress; //Default ERC20 interface.
+    ERC20_WETH assetInterface;
+
+    address poolAddress;
+    CurvePool poolInterface;
     
     constructor() {
 
         /* ////////// Vault Specific Instantiations ////////// */
 
         vaultAddress = 0xd598930e2474fFa73f1E1f29746ddEA7D5976dC4; //set this to be the vault address
-            //Current Goerli Vault deployment area
-        vaultInterface = IERC4626(vaultAddress); //this intializes an interface with the vault
+        vaultInterface = IERC4626(vaultAddress); //this initializes an interface with the vault
         
+
         assetAddress = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;//set this to be the vault's asset address
-            //Goerli WETH address
-        assetInterface = ERC20(assetAddress); //this intializes an interface with the asset
+        assetInterface = ERC20_WETH(assetAddress); //this initializes an interface with the asset 
+        //In this specific instance...the asset is WETH...the interface is Transmissions11's ERC20 interface with two WETH functions
+        //I am sorry for butchering your boy lord Solmate.
+        
+
+        poolAddress = 0x0000000000000000000000000000000000000000; //set this to be the curve pool's address
+        poolInterface = CurvePool(poolAddress); //this initializes an interface to the curve Pool
 
          /* ////////// Vault Specific Instantiations ////////// */
     }
@@ -51,6 +59,22 @@ contract strategy_template {
         returnAssetsToVault();
     }
 
+    /*Process of pain
+        Get assets from the vault - WETH from vault
+        Unwrap assets - WETH into ETH
+        Exchange assets on Curve - ETH exchanged into ankrETH
+        
+        HODL HODL HODL HODL HODL HODL HODODLDLDL - ankrETH TO THE MOON
+
+        Exchange appreciated assets on Curve for original asset - ankrETH into ETH
+        Wrap assets - ETH into WETH
+        Return Assets to vault - WETH back to vault.
+    */
+
+    //After this works...implement functional ownership of strategies...
+    //Also ensure proper ownership of the vault
+
+
 
 }
 
@@ -58,10 +82,21 @@ interface CurvePool {
     //Get the coins in the pool
     function coins (uint256 arg) external view returns(address);
 
+    //"Get the amount of coin j one would receive for swapping _dx of coin i."
     function get_dy (int128 i, int128 j, uint256 dx) external view returns (uint256);
 
+    //Get the amount of dx you would need to swap in order to obtain dy of the other coin
     function get_dx (int128 i, int128 j, uint256 dy) external view returns (uint256);
-
+    
+    /*Perform an exchange between two coins.
+        i: Index value for the coin to send
+        j: Index value of the coin to receive
+        _dx: Amount of i being exchanged
+        _min_dy: Minimum amount of j to receive
+    Returns the actual amount of coin j received. 
+      To get _min_dy ....take the value of get_dy and do the slippage math
+    */// This function is external BUT PAYABLE ONLY FOR THIS SPECIFIC TYPE OF CURVE POOL
+    function exchange (int128 i, int128 j, uint256 _dx ,uint256 _min_dy) payable external;
 
 }
 
@@ -71,7 +106,7 @@ pragma solidity >=0.8.0;
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC20.sol)
 /// @author Modified from Uniswap (https://github.com/Uniswap/uniswap-v2-core/blob/master/contracts/UniswapV2ERC20.sol)
 /// @dev Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it.
-abstract contract ERC20 {
+abstract contract ERC20_WETH {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -269,6 +304,16 @@ abstract contract ERC20 {
 
         emit Transfer(from, address(0), amount);
     }
+
+
+    //I am so sorry Transmissions11 but I need this interface specifically for WETH...forgive me father
+    
+    //WETH Deposit function
+    function deposit () external payable virtual;
+
+    //WETH Withdraw function
+    function withdraw (uint256 amt) external virtual; 
+
 }
 
 
@@ -276,7 +321,7 @@ pragma solidity >=0.8.0;
 
 /// @title ERC4626 interface
 /// See: https://eips.ethereum.org/EIPS/eip-4626
-abstract contract IERC4626 is ERC20 {
+abstract contract IERC4626 is ERC20_WETH {
     /*////////////////////////////////////////////////////////
                       Events
     ////////////////////////////////////////////////////////*/
