@@ -3,11 +3,14 @@ pragma solidity >=0.8.0;
 
 contract strategy_template {
 
-    address vaultAddress;
+    address vaultAddress; //
     IERC4626 vaultInterface;
 
-    address assetAddress; //Default ERC20 interface.
-    ERC20_WETH assetInterface;
+    address assetAddress; //WETH address
+    ERC20_WETH assetInterface; //WETH interface
+
+    address ankrAddress; //ankrETH address
+    ERC20_WETH ankrInterface; //ankrETH interface - just using the ERC20 interface already available
 
     address poolAddress;
     CurvePool poolInterface;
@@ -30,6 +33,9 @@ contract strategy_template {
         //In this specific instance...the asset is WETH...the interface is Transmissions11's ERC20 interface with two WETH functions added
         //I am sorry for butchering your boy lord Solmate.
         //Key concern...will my modified solmate ERC20 interface work?
+
+        ankrAddress = 0x0000000000000000000000000000000000000000; //set this to be the ankrETH asset address
+        ankrInterface = ERC20_WETH(ankrAddress); //ERC20 interface for ankrETH
         
 
         poolAddress = 0x0000000000000000000000000000000000000000; //set this to be the curve pool's address
@@ -83,25 +89,17 @@ contract strategy_template {
      /* ////////// END Vault Interactions - Internal functions ////////// */
 
 
-    /* PLANNING FOR WHAT THIS VAULT NEEDS TO DO IN PARTICULAR WITH ANKRETH
-        Get assets from the vault - WETH from vault
-        Unwrap assets - WETH into ETH
-        Exchange assets on Curve - ETH exchanged into ankrETH
-        
-        HODL HODL HODL HODL HODL HODL HODODLDLDL - ankrETH TO THE MOON
-
-        Exchange appreciated assets on Curve for original asset - ankrETH into ETH
-        Wrap assets - ETH into WETH
-        Return Assets to vault - WETH back to vault.
-    */
-
-
     /*/////////// Vault Executions  //////////////*/
 
 //Does a function that isn't payable.....does it allow for calling payable functions within it?
+//Essentially....do I need to allocate gas somewhere in here for this exchange function to work?
+//I cannot remember that being neccessary since it is a interface call to a payable function...not an address to address transfer call
 
+//Enter the strategy
     function executeStrategyEnter () public onlyOperator {
+
         getAssetsFromVault(); //Get assets from the vault - WETH from vault
+
         uint256 balance = assetInterface.balanceOf(address(this)); //Get the strategy's new balance of WETh
 
         assetInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
@@ -113,9 +111,26 @@ contract strategy_template {
         poolInterface.exchange {value: address(this).balance} (0,1, address(this).balance, expected);
         //Call the curve pool exchange function with a msg.value of the strategy's ETH balance
         //Swapping pool coin 0 (ETH) with pool coin 1 (ankrETH), the amount is the same as the msg.value, and expected is seen above
-
     }
 
+//Exit the strategy
+    function executeStrategyExit () public onlyOperator {
+        uint256 expected = ( poolInterface.get_dy( 1, 0, ankrInterface.balanceOf(address(this))  ) / 10000 ) * 9750; 
+        //Get this contract's balance of ankrETH, and calculate an expected value for the curve swap with 250 bps allowance
+
+        ankrInterface.approve(poolAddress, ankrInterface.balanceOf(address(this)));
+        //Call an approval for the pool to use this ankrETH ERC20
+
+        poolInterface.exchange {value: 0} ( 1 , 0 , ankrInterface.balanceOf(address(this)), expected);
+        //Call the curve pool exchange function with a msg.value of 0 to exchange all of this contract's 
+        //Swapping pool coin 1 (ankrETH) with pool coin 0 (ETH), the total ankrETH balance of this contract
+
+        assetInterface.deposit {value: address(this).balance};
+        //Deposit all of this recently acquired ETH into the WETH contract.
+
+        returnAssetsToVault(); //Return all of these assets to the vault.
+
+    }
 
     /*/////////// END Vault Executions  //////////////*/
 
