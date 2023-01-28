@@ -98,6 +98,8 @@ contract strategy_template {
 
     /*/////////// Vault Executions  //////////////*/
 
+//Does a function that isn't payable.....does it allow for calling payable functions within it?
+
     function executeStrategyEnter () public onlyOperator {
         getAssetsFromVault(); //Get assets from the vault - WETH from vault
         uint256 balance = assetInterface.balanceOf(address(this)); //Get the strategy's new balance of WETh
@@ -108,7 +110,8 @@ contract strategy_template {
         uint256 expected = (poolInterface.get_dy(0, 1, address(this).balance ) / 10000) * 9750; 
         //Get this contract's new balance of raw WETH, and calculate an expected value for the curve swap with 250 bps allowance
 
-
+        poolInterface.exchange {value: address(this).balance} (0,1, address(this).balance, expected);
+        //Call the curve pool exchange function with a msg.value of the strategy's ETH balance
 
     }
 
