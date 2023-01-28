@@ -112,6 +112,7 @@ contract strategy_template {
 
         poolInterface.exchange {value: address(this).balance} (0,1, address(this).balance, expected);
         //Call the curve pool exchange function with a msg.value of the strategy's ETH balance
+        //Swapping pool coin 0 (ETH) with pool coin 1 (ankrETH), the amount is the same as the msg.value, and expected is seen above
 
     }
 
