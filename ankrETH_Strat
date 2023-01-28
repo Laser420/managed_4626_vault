@@ -11,28 +11,59 @@ contract strategy_template {
 
     address poolAddress;
     CurvePool poolInterface;
-    
+
+    address operator; //The vault's operator
+    address newOperator; //A variable used for safer transitioning between vault operators
+
+
     constructor() {
 
-        /* ////////// Vault Specific Instantiations ////////// */
+        operator = msg.sender;
 
+        /* ////////// Vault Specific Instantiations ////////// */
         vaultAddress = 0xd598930e2474fFa73f1E1f29746ddEA7D5976dC4; //set this to be the vault address
         vaultInterface = IERC4626(vaultAddress); //this initializes an interface with the vault
         
 
         assetAddress = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;//set this to be the vault's asset address
         assetInterface = ERC20_WETH(assetAddress); //this initializes an interface with the asset 
-        //In this specific instance...the asset is WETH...the interface is Transmissions11's ERC20 interface with two WETH functions
+        //In this specific instance...the asset is WETH...the interface is Transmissions11's ERC20 interface with two WETH functions added
         //I am sorry for butchering your boy lord Solmate.
+        //Key concern...will my modified solmate ERC20 interface work?
         
 
         poolAddress = 0x0000000000000000000000000000000000000000; //set this to be the curve pool's address
         poolInterface = CurvePool(poolAddress); //this initializes an interface to the curve Pool
-
          /* ////////// Vault Specific Instantiations ////////// */
     }
 
-    /* ////////// Vault Interactions ////////// */
+    /*////// Operator functions and modifiers ///// */
+
+    modifier onlyOperator() {
+        require(msg.sender == operator, "You aren't the operator.");
+        _;
+    }
+
+    //Make sure only the address set in the newOperator variable can use a given function
+    modifier onlyNewOperator() {
+        require(msg.sender == newOperator, "You aren't the new operator.");
+        _;
+    }
+
+    function setNewOperator(address op) public onlyOperator()
+    {
+     newOperator = op;
+    }
+
+    //Non-standard - called by the newOperator address to officialy take over control as the new vault operator
+    function changeToNewOperator() public onlyNewOperator(){
+        operator = newOperator;
+    }
+
+    /*////// Operator functions ///// */
+
+
+    /* ////////// Vault Interactions - Internal functions ////////// */
 
     //Send all of the vault's assets to this strategy
     // This should be it. The function is meant to be a one stop shop.
@@ -49,15 +80,8 @@ contract strategy_template {
         vaultInterface.transferFundsBackFromStrategy(totalAssets); //Call the vault function that withdraws this amount from this strategy contract
     }
 
+     /* ////////// END Vault Interactions - Internal functions ////////// */
 
-    // Test functions
-    function getAssetsFromVaultTest() public {
-        getAssetsFromVault();
-    }
-
-    function returnAssetsToVaultTest() public {
-        returnAssetsToVault();
-    }
 
     /* PLANNING FOR WHAT THIS VAULT NEEDS TO DO IN PARTICULAR WITH ANKRETH
         Get assets from the vault - WETH from vault
@@ -70,6 +94,26 @@ contract strategy_template {
         Wrap assets - ETH into WETH
         Return Assets to vault - WETH back to vault.
     */
+
+
+    /*/////////// Vault Executions  //////////////*/
+
+    function executeStrategyEnter () public onlyOperator {
+        getAssetsFromVault(); //Get assets from the vault - WETH from vault
+        uint256 balance = assetInterface.balanceOf(address(this)); //Get the strategy's new balance of WETh
+
+        assetInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
+        //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
+
+        uint256 expected = (poolInterface.get_dy(0, 1, address(this).balance ) / 10000) * 9750; 
+        //Get this contract's new balance of raw WETH, and calculate an expected value for the curve swap with 250 bps allowance
+
+
+
+    }
+
+
+    /*/////////// END Vault Executions  //////////////*/
 
     //After this works...implement functional ownership of strategies...
     //Also ensure proper ownership of the vault
