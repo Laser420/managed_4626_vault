@@ -689,7 +689,7 @@ pragma solidity >=0.8.0;
                         DEPOSIT/WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    //Enter the strategy by depositing x amount of assets to receive a given amount of vault share
+    //Enter the strategy by depositing x amount of assets to receive a given amount of vault shares
     //This interaction is controlled by the vault operator
     function deposit(uint256 assets, address receiver) public interactControlled returns (uint256 shares) {
         // Check for rounding error since we round down in previewDeposit.
@@ -782,12 +782,6 @@ pragma solidity >=0.8.0;
     /*//////////////////////////////////////////////////////////////
                             ACCOUNTING AND ADMIN LOGIC
     //////////////////////////////////////////////////////////////*/
-
-
-    /*////////////////  Admin Logic: /////////////////////*/
-            //While the vault is in limbo....(the actual wETH is within some external strategy)...the user's share values are determined by 'underlying_in_strategy'
-            //When the vault is pulled out of limbo and the vault is holding its assets call 'updateUnderyling'
-            //The share values are updated to include the yield generated while in limbo.
 
     //Non-standard - set the newOperator address - called by the current vault operator
     function setNewOperator(address op) public onlyOperator()
