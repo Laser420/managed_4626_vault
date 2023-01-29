@@ -851,8 +851,6 @@ pragma solidity >=0.8.0;
         _updateUnderlying(); //Update the underlying value in this contract.
     }
 
-    
-    //To be honest Im concerned that some fuck wucky security issue could occur by allowing interactions in the same call.
 
 /*
 // NOTE: The vault strategy contract MUST call an approval for all its assets before calling this function
