@@ -6,9 +6,9 @@
 Testing Steps
 1. Deploy Vault
 	Constructer takes: 
-				WETH Address
-				Name for our ERC20 vault token
-				Token for our ERC20 vault token
+				WETH Address,
+				Name for our ERC20 vault token,
+				Token for our ERC20 vault token,
   Verify Vault on Etherscan.
 
 2. Deploy Strategy
