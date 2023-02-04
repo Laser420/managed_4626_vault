@@ -677,14 +677,16 @@ pragma solidity >=0.8.0;
         _;
     }
 
+    /*//////////////////////////////////////////////////////////////
+                           Checker Functions
+    //////////////////////////////////////////////////////////////*/
 
-    //Just a public function to see the current vault's representation of its underlying while in limbo
+    // see the current vault's underlying representation (even when vault is in limbo)
     function checkUnderlying() public view returns (uint256) {
         return underlying_in_strategy;
     }
 
-    //Just a way to see the current vault strategy
-    function checkStrategy() public view returns (address) {
+    function checkStrategy() public view returns (address) { //See the current vault strategy
         return strategy;
     }
 
@@ -709,7 +711,6 @@ pragma solidity >=0.8.0;
         emit Deposit(msg.sender, receiver, assets, shares);
 
         afterDeposit(assets, shares);
-        
     }
 
     //Enter the strategy by deciding to mint x amount of vault shares from your assets
@@ -753,7 +754,6 @@ pragma solidity >=0.8.0;
         asset.safeTransfer(receiver, assets);
 
         _updateUnderlying(); //Update the underlying value in the system
-        
     }
 
     //Redeem x amount of assets from your shares
@@ -784,7 +784,7 @@ pragma solidity >=0.8.0;
     }
 
     /*//////////////////////////////////////////////////////////////
-                            ACCOUNTING AND ADMIN LOGIC
+                            Operator Logic
     //////////////////////////////////////////////////////////////*/
 
     //Non-standard - set the newOperator address - called by the current vault operator
@@ -801,29 +801,29 @@ pragma solidity >=0.8.0;
     //Non-standard - update the vault representation of it's current assets
     //External call for manually updating this value. Just in case. 
     //The vault holds a value representing its assets while these assets have been transferred away
-    //Upon re-transferring these assets.....update this value to do accurate share depositing and withdrawing
+    //Upon re-transferring these assets.....update this value for accurate share depositing and withdrawing
     //DO NOT ALLOW FOR VAULT INTERACTIONS BEFORE PROPERLY UPDATING THE UNDERLYING VALUE
     function updateUnderlying() public onlyOperator()
     {
      _updateUnderlying();
     }
 
-    //Non-standard - update the vault's representation of it's current assets
-    //Internal call so that way other functions can update the underlying
+    //Non-standard - update the vault's representation of it's current assets - internally callable
     //DO NOT ALLOW FOR VAULT INTERACTIONS BEFORE PROPERLY UPDATING THE UNDERLYING VALUE
     function _updateUnderlying() internal 
     {
      underlying_in_strategy = asset.balanceOf(address(this)); 
     }
 
-    //Non-standard - change whether or not the user can interact with the vault
-    //If B is true...the user can interact with the vault and deposit and redeem
+//Non-standard - change whether or not the user can interact with the vault 
+    // when B is true - the user can interact with the vault and deposit and redeem
     function updateInteractions(bool b) public onlyOperator()
     {
      canInteract = b; 
     }
 
-    //Non-standard - change the address of the vault strategy.
+//Need to update this
+//Non-standard - change the address of the vault strategy.
     //DO NOT CHANGE STRATEGY UNTIL THE OLD STRATEGY HAS BEEN PROPERLY LIQUIDATED
     function changeStrategy(address newStrat) public onlyOperator()
     {
@@ -861,13 +861,11 @@ pragma solidity >=0.8.0;
         uint256 supply = totalSupply; 
         return supply;
     }
-
-    /*
+    /* //////////////////////////////////////////
     totalAssets() function is currently unused.
     The below functions reference the vault's total assets using 'underlying_in_strategy' variable
-    Function names are still 4626 compliant.
-    */
-
+    Function names are still 4626 compliant. 
+    //////////////////////////////////////////*/
     function convertToShares(uint256 assets) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
         return supply == 0 ? assets : assets.mulDivDown(supply, underlying_in_strategy);
