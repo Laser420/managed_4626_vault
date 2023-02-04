@@ -690,17 +690,14 @@ pragma solidity >=0.8.0;
         return strategy;
     }
 
-
     /*//////////////////////////////////////////////////////////////
                         DEPOSIT/WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    //Enter the strategy by depositing x amount of assets to receive a given amount of vault shares
-    //This interaction is allowed (or disallowed) by the vault operator
+    //Enter the strategy by depositing x amount of assets to receive a given amount of vault shares - interactControlled
     function deposit(uint256 assets, address receiver) public interactControlled returns (uint256 shares) {
         // Check for rounding error since we round down in previewDeposit.
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
-
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(msg.sender, address(this), assets);
 
@@ -713,11 +710,9 @@ pragma solidity >=0.8.0;
         afterDeposit(assets, shares);
     }
 
-    //Enter the strategy by deciding to mint x amount of vault shares from your assets
-    //This interaction is allowed (or disallowed) by the vault operator
+    //Enter the strategy by deciding to mint x amount of vault shares from your assets - interactControlled
     function mint(uint256 shares, address receiver) public interactControlled returns (uint256 assets) {
         assets = previewMint(shares); // No need to check for rounding error, previewMint rounds up.
-
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(msg.sender, address(this), assets);
 
@@ -730,8 +725,7 @@ pragma solidity >=0.8.0;
         afterDeposit(assets, shares);
     }
 
-    //Withdraw assets based on a number of shares
-    //This interaction is allowed (or disallowed) by the vault operator
+    //Withdraw assets based on a number of shares - interactControlled
     function withdraw(
         uint256 assets,
         address receiver,
@@ -756,8 +750,7 @@ pragma solidity >=0.8.0;
         _updateUnderlying(); //Update the underlying value in the system
     }
 
-    //Redeem x amount of assets from your shares
-    //This interaction is allowed (or disallowed) by the vault operator
+    //Redeem x amount of assets from your shares - interactControlled
     function redeem(
         uint256 shares,
         address receiver,
@@ -815,14 +808,13 @@ pragma solidity >=0.8.0;
      underlying_in_strategy = asset.balanceOf(address(this)); 
     }
 
-//Non-standard - change whether or not the user can interact with the vault 
-    // when B is true - the user can interact with the vault and deposit and redeem
+//Non-standard - when B is set true users can deposit and redeem
     function updateInteractions(bool b) public onlyOperator()
     {
      canInteract = b; 
     }
 
-//Need to update this
+//THIS BELOW CODE IS WORTHLESS AND BROKEN AND SAD AND OLD AND GIGGITY GIG
 //Non-standard - change the address of the vault strategy.
     //DO NOT CHANGE STRATEGY UNTIL THE OLD STRATEGY HAS BEEN PROPERLY LIQUIDATED
     function changeStrategy(address newStrat) public onlyOperator()
