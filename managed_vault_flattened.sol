@@ -650,29 +650,33 @@ pragma solidity >=0.8.0;
         canInteract = true; //Set whether or not the vault may be interacted with
     }
 
-    //Make sure only the operator can use a given function
+
+    /*//////////////////////////////////////////////////////////////
+                               Modifiers
+    //////////////////////////////////////////////////////////////*/
+
+        //Make sure only the operator can use a given function
     modifier onlyOperator() {
         require(msg.sender == operator, "You aren't the operator.");
         _;
     }
-
-    //Make sure only the address set in the newOperator variable can use a given function
+        //Make sure only the address set in the newOperator variable can use a given function
     modifier onlyNewOperator() {
         require(msg.sender == newOperator, "You aren't the new operator.");
         _;
     }
-
-    //Make sure only the vault's strategy contract can call this function
+        //Make sure only the vault's strategy contract can call this function
      modifier onlyStrategy() {
         require(msg.sender == strategy, "You aren't the current vault strategy");
         _;
     }
 
-    //Make sure user interactions are currently allowed. 
+        //Make sure user interactions are currently allowed. 
     modifier interactControlled() {
         require(canInteract == true, "Interactions with this vault are currently locked");
         _;
     }
+
 
     //Just a public function to see the current vault's representation of its underlying while in limbo
     function checkUnderlying() public view returns (uint256) {
@@ -690,7 +694,7 @@ pragma solidity >=0.8.0;
     //////////////////////////////////////////////////////////////*/
 
     //Enter the strategy by depositing x amount of assets to receive a given amount of vault shares
-    //This interaction is controlled by the vault operator
+    //This interaction is allowed (or disallowed) by the vault operator
     function deposit(uint256 assets, address receiver) public interactControlled returns (uint256 shares) {
         // Check for rounding error since we round down in previewDeposit.
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
@@ -709,7 +713,7 @@ pragma solidity >=0.8.0;
     }
 
     //Enter the strategy by deciding to mint x amount of vault shares from your assets
-    //This interaction is controlled by the vault operator
+    //This interaction is allowed (or disallowed) by the vault operator
     function mint(uint256 shares, address receiver) public interactControlled returns (uint256 assets) {
         assets = previewMint(shares); // No need to check for rounding error, previewMint rounds up.
 
@@ -726,7 +730,7 @@ pragma solidity >=0.8.0;
     }
 
     //Withdraw assets based on a number of shares
-    //This interaction is controlled by the vault operator
+    //This interaction is allowed (or disallowed) by the vault operator
     function withdraw(
         uint256 assets,
         address receiver,
@@ -753,7 +757,7 @@ pragma solidity >=0.8.0;
     }
 
     //Redeem x amount of assets from your shares
-    //This interaction is controlled by the vault operator
+    //This interaction is allowed (or disallowed) by the vault operator
     function redeem(
         uint256 shares,
         address receiver,
@@ -826,6 +830,9 @@ pragma solidity >=0.8.0;
       strategy = newStrat;
     }
 
+    /*//////////////////////////////////////////////////////////////
+                     STRATEGY ACCESSED FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     //Non-standard - called by the strategy to transfer all funds to the strategy. 
     function transferFundsToStrategy() public onlyStrategy()
@@ -846,36 +853,28 @@ pragma solidity >=0.8.0;
     }
 
 
-/*
-// NOTE: The vault strategy contract MUST call an approval for all its assets before calling this function
-    //Nonstandard - called by the strategy to transfer all funds to this vault and update underlying, then it allows user interactions
-     function transferFundsBackFromStrategyInteraction(uint256 strategyBal) public onlyStrategy()
-    {
-        asset.safeTransferFrom(msg.sender, address(this), strategyBal); //transfer from the strategy (msg.sender) to this contract, all of the strategy's assets
-        _updateUnderlying(); //Update the underlying value in this contract.
-        canInteract = true;
-    }
-*/
+    /*//////////////////////////////////////////////////////////////
+                     ACCOUNTING LOGIC
+    //////////////////////////////////////////////////////////////*/
 
-
-    /*////////////////  Accounting Logic: /////////////////////*/
-
-    //Might remove this....Unsure if it is neccessary for vault movement interactions
-
-    //ERC2626 standard for totalAssets() - returns the total amount of vault shares
+//ERC2626 standard for totalAssets() - returns the total amount of vault shares
+    //This function is currently unused - instead all below logic references 'underlying_in_strategy'
     function totalAssets() public view returns (uint256)
     {
         uint256 supply = totalSupply; 
         return supply;
     }
 
-
+//Logic changes from ERC4626 template (still compliant)
+    //Uses the underlying_in_strategy variable to calculate
     function convertToShares(uint256 assets) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
 
         return supply == 0 ? assets : assets.mulDivDown(supply, underlying_in_strategy);
     }
 
+//Logic changes from ERC4626 template (still compliant)
+    //Uses the underlying_in_strategy variable to calculate
     function convertToAssets(uint256 shares) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
 
@@ -886,14 +885,17 @@ pragma solidity >=0.8.0;
         return convertToShares(assets);
     }
 
+//Logic changes from ERC4626 template (still compliant)
+    //Uses the underlying_in_strategy variable to calculate 
     function previewMint(uint256 shares) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
 
         return supply == 0 ? shares : shares.mulDivUp(underlying_in_strategy, supply);
-        //Make sure the minter mints the right amount of shares for the total underyling amount of assets
-        
+        //Make sure the minter mints the right amount of shares for the underyling amount of assets
     }
 
+//Logic changes from ERC4626 template (still compliant)
+    //Uses the underlying_in_strategy variable to calculate 
     function previewWithdraw(uint256 assets) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
 
@@ -904,6 +906,7 @@ pragma solidity >=0.8.0;
     function previewRedeem(uint256 shares) public view  returns (uint256) {
         return convertToAssets(shares);
     }
+
 
     /*//////////////////////////////////////////////////////////////
                      DEPOSIT/WITHDRAWAL LIMIT LOGIC
