@@ -852,32 +852,29 @@ pragma solidity >=0.8.0;
         _updateUnderlying(); //Update the underlying value in this contract.
     }
 
-
     /*//////////////////////////////////////////////////////////////
                      ACCOUNTING LOGIC
     //////////////////////////////////////////////////////////////*/
 
-//ERC2626 standard for totalAssets() - returns the total amount of vault shares
-    //This function is currently unused - instead all below logic references 'underlying_in_strategy'
-    function totalAssets() public view returns (uint256)
+    function totalAssets() public view returns (uint256) //returns the total amount of vault shares
     {
         uint256 supply = totalSupply; 
         return supply;
     }
 
-//Logic changes from ERC4626 template (still compliant)
-    //Uses the underlying_in_strategy variable to calculate
+    /*
+    totalAssets() function is currently unused.
+    The below functions reference the vault's total assets using 'underlying_in_strategy' variable
+    Function names are still 4626 compliant.
+    */
+
     function convertToShares(uint256 assets) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
-
         return supply == 0 ? assets : assets.mulDivDown(supply, underlying_in_strategy);
     }
 
-//Logic changes from ERC4626 template (still compliant)
-    //Uses the underlying_in_strategy variable to calculate
     function convertToAssets(uint256 shares) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
-
         return supply == 0 ? shares : shares.mulDivDown(underlying_in_strategy, supply);
     }
 
@@ -885,20 +882,14 @@ pragma solidity >=0.8.0;
         return convertToShares(assets);
     }
 
-//Logic changes from ERC4626 template (still compliant)
-    //Uses the underlying_in_strategy variable to calculate 
     function previewMint(uint256 shares) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
-
         return supply == 0 ? shares : shares.mulDivUp(underlying_in_strategy, supply);
         //Make sure the minter mints the right amount of shares for the underyling amount of assets
     }
 
-//Logic changes from ERC4626 template (still compliant)
-    //Uses the underlying_in_strategy variable to calculate 
     function previewWithdraw(uint256 assets) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
-
         return supply == 0 ? assets : assets.mulDivUp(supply, underlying_in_strategy);
         //Give the user their percentage of the total underyling amount of vault assets.
     }
@@ -906,7 +897,6 @@ pragma solidity >=0.8.0;
     function previewRedeem(uint256 shares) public view  returns (uint256) {
         return convertToAssets(shares);
     }
-
 
     /*//////////////////////////////////////////////////////////////
                      DEPOSIT/WITHDRAWAL LIMIT LOGIC
