@@ -631,10 +631,10 @@ pragma solidity >=0.8.0;
 
     ERC20 public immutable asset;
     uint256 underlying_in_strategy; //Keep track of the vault's balance of the underlying asset
-
     address operator; //The vault's operator
     address newOperator; //A variable used for safer transitioning between vault operators
     address strategy; //The current vault strategy
+    address newStrategy; //An address used for safer transitioning between strategies. 
     bool canInteract; //Manage when the user can interact with the vault
 
     constructor(
@@ -668,6 +668,12 @@ pragma solidity >=0.8.0;
         //Make sure only the vault's strategy contract can call this function
      modifier onlyStrategy() {
         require(msg.sender == strategy, "You aren't the current vault strategy");
+        _;
+    }
+
+       //Make sure only the vault's strategy contract can call this function
+     modifier onlyNewStrategy() {
+        require(msg.sender == newStrategy, "You aren't the new vault strategy");
         _;
     }
 
@@ -814,13 +820,33 @@ pragma solidity >=0.8.0;
      canInteract = b; 
     }
 
-//THIS BELOW CODE IS WORTHLESS AND BROKEN AND SAD AND OLD AND GIGGITY GIG
-//Non-standard - change the address of the vault strategy.
-    //DO NOT CHANGE STRATEGY UNTIL THE OLD STRATEGY HAS BEEN PROPERLY LIQUIDATED
-    function changeStrategy(address newStrat) public onlyOperator()
+/* Changing strategies:
+    'beginStrategyChangeStrat' is called from the old strategy contract to set the newStrategy address.
+    IN THIS INTERMISSION: You could do a direct strategy-to-strategy transfer of assets 
+        This would work provided you do not need to allow user interactions between strategies
+        DO NOT use strategy to strategy transfers WITHOUT unwrapping into the vault native asset
+        Custom strategy to strategy tansfers would create debt between old strategies and new ones 
+    //But Author says you, "what if I am an American and love debt".....well in that case go get a reverse mortage 
+
+    'beginStrategyChangeOp' is called from the operator to set the newStrategy address.
+        This is used for when the vault is not in an active strategy and wants to upgrade to a new strategy.
+    'completeStrategyChange' is called from the newStrategy and changes the strategy address variable to that address.
+*/
+    function beginStrategyChangeStrat(address newStrat) public onlyStrategy()
     {
-      strategy = newStrat;
+      newStrategy = newStrat;
     }
+
+    function beginStrategyChangeOp(address newStrat) public onlyStrategy()
+    {
+      newStrategy = newStrat;
+    }
+
+    function completeStrategyChange() public onlyNewStrategy()
+    {
+      strategy = msg.sender;
+    }
+
 
     /*//////////////////////////////////////////////////////////////
                      STRATEGY ACCESSED FUNCTIONS
