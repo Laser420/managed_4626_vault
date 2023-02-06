@@ -14,8 +14,8 @@ import {SafeTransferLib} from "https://github.com/transmissions11/solmate/blob/m
 import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob/main/src/utils/FixedPointMathLib.sol";
 
 /// @notice Manually Operated 4626 Yield Vault
-/// @author Originally from Solmate(https://github.com/transmissions11/solmate/blob/main/src/mixins/ERC4626.sol), modified and edited by Laser420
-///
+/// @author Laser420 with ERC4626 template sourced from transmissions11's Solmate library
+
    contract ERC4626 is ERC20 {
     using SafeTransferLib for ERC20;
     using FixedPointMathLib for uint256;
@@ -40,10 +40,10 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
 
     ERC20 public immutable asset;
     uint256 underlying_in_strategy; //Keep track of the vault's balance of the underlying asset
-
     address operator; //The vault's operator
     address newOperator; //A variable used for safer transitioning between vault operators
     address strategy; //The current vault strategy
+    address newStrategy; //An address used for safer transitioning between strategies. 
     bool canInteract; //Manage when the user can interact with the vault
 
     constructor(
@@ -59,51 +59,59 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
         canInteract = true; //Set whether or not the vault may be interacted with
     }
 
-    //Make sure only the operator can use a given function
+    /*//////////////////////////////////////////////////////////////
+                               Modifiers
+    //////////////////////////////////////////////////////////////*/
+
+        //Make sure only the operator can use a given function
     modifier onlyOperator() {
         require(msg.sender == operator, "You aren't the operator.");
         _;
     }
-
-    //Make sure only the address set in the newOperator variable can use a given function
+        //Make sure only the address set in the newOperator variable can use a given function
     modifier onlyNewOperator() {
         require(msg.sender == newOperator, "You aren't the new operator.");
         _;
     }
-
-    //Make sure only the vault's strategy contract can call this function
+        //Make sure only the vault's strategy contract can call this function
      modifier onlyStrategy() {
         require(msg.sender == strategy, "You aren't the current vault strategy");
         _;
     }
 
-    //Make sure user interactions are currently allowed. 
+       //Make sure only the vault's strategy contract can call this function
+     modifier onlyNewStrategy() {
+        require(msg.sender == newStrategy, "You aren't the new vault strategy");
+        _;
+    }
+
+        //Make sure user interactions are currently allowed. 
     modifier interactControlled() {
         require(canInteract == true, "Interactions with this vault are currently locked");
         _;
     }
 
-    //Just a public function to see the current vault's representation of its underlying while in limbo
+    /*//////////////////////////////////////////////////////////////
+                           Checker Functions
+    //////////////////////////////////////////////////////////////*/
+
+    // see the current vault's underlying representation (even when vault is in limbo)
     function checkUnderlying() public view returns (uint256) {
         return underlying_in_strategy;
     }
 
-    //Just a way to see the current vault strategy
-    function checkStrategy() public view returns (address) {
+    function checkStrategy() public view returns (address) { //See the current vault strategy
         return strategy;
     }
-
 
     /*//////////////////////////////////////////////////////////////
                         DEPOSIT/WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    //Enter the strategy by depositing x amount of assets to receive a given amount of vault share
-    //This interaction is controlled by the vault operator
+    //Enter the strategy by depositing x amount of assets to receive a given amount of vault shares - interactControlled
     function deposit(uint256 assets, address receiver) public interactControlled returns (uint256 shares) {
         // Check for rounding error since we round down in previewDeposit.
         require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
-
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(msg.sender, address(this), assets);
 
@@ -114,14 +122,11 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
         emit Deposit(msg.sender, receiver, assets, shares);
 
         afterDeposit(assets, shares);
-        
     }
 
-    //Enter the strategy by deciding to mint x amount of vault shares from your assets
-    //This interaction is controlled by the vault operator
+    //Enter the strategy by deciding to mint x amount of vault shares from your assets - interactControlled
     function mint(uint256 shares, address receiver) public interactControlled returns (uint256 assets) {
         assets = previewMint(shares); // No need to check for rounding error, previewMint rounds up.
-
         // Need to transfer before minting or ERC777s could reenter.
         asset.safeTransferFrom(msg.sender, address(this), assets);
 
@@ -134,8 +139,7 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
         afterDeposit(assets, shares);
     }
 
-    //Withdraw assets based on a number of shares
-    //This interaction is controlled by the vault operator
+    //Withdraw assets based on a number of shares - interactControlled
     function withdraw(
         uint256 assets,
         address receiver,
@@ -158,11 +162,9 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
         asset.safeTransfer(receiver, assets);
 
         _updateUnderlying(); //Update the underlying value in the system
-        
     }
 
-    //Redeem x amount of assets from your shares
-    //This interaction is controlled by the vault operator
+    //Redeem x amount of assets from your shares - interactControlled
     function redeem(
         uint256 shares,
         address receiver,
@@ -189,14 +191,8 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
     }
 
     /*//////////////////////////////////////////////////////////////
-                            ACCOUNTING AND ADMIN LOGIC
+                            Operator Logic
     //////////////////////////////////////////////////////////////*/
-
-
-    /*////////////////  Admin Logic: /////////////////////*/
-            //While the vault is in limbo....(the actual wETH is within some external strategy)...the user's share values are determined by 'underlying_in_strategy'
-            //When the vault is pulled out of limbo and the vault is holding its assets call 'updateUnderyling'
-            //The share values are updated to include the yield generated while in limbo.
 
     //Non-standard - set the newOperator address - called by the current vault operator
     function setNewOperator(address op) public onlyOperator()
@@ -210,35 +206,55 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
     }
 
     //Non-standard - update the vault representation of it's current assets
+    //External call for manually updating this value. Just in case. 
     //The vault holds a value representing its assets while these assets have been transferred away
-    //Upon re-transferring these assets.....update this value to do accurate share depositing and withdrawing
+    //Upon re-transferring these assets.....update this value for accurate share depositing and withdrawing
     //DO NOT ALLOW FOR VAULT INTERACTIONS BEFORE PROPERLY UPDATING THE UNDERLYING VALUE
     function updateUnderlying() public onlyOperator()
     {
      _updateUnderlying();
     }
 
-    //Non-standard - update the vault's representation of it's current assets
-    //Internal call so that way other functions can update the underlying
+    //Non-standard - update the vault's representation of it's current assets - internally callable
+    //DO NOT ALLOW FOR VAULT INTERACTIONS BEFORE PROPERLY UPDATING THE UNDERLYING VALUE
     function _updateUnderlying() internal 
     {
      underlying_in_strategy = asset.balanceOf(address(this)); 
     }
 
-    //Non-standard - change whether or not the user can interact with the vault
-    //If B is true...the user can interact with the vault and deposit and redeem
+//Non-standard - when B is set true users can deposit and redeem
     function updateInteractions(bool b) public onlyOperator()
     {
      canInteract = b; 
     }
 
-    //Non-standard - change the address of the vault strategy.
-    //DO NOT CHANGE STRATEGY UNTIL THE OLD STRATEGY HAS BEEN PROPERLY LIQUIDATED
-    function changeStrategy(address newStrat) public onlyOperator()
+/* Changing strategies:
+    'beginStrategyChangeStrat' is called from the old strategy contract to set the newStrategy address.
+    'beginStrategyChangeOp' is called from the operator to set the newStrategy address.
+        This is used for when the vault is not in an active strategy and wants to upgrade to a new strategy.
+    'completeStrategyChange' is called from the newStrategy and changes the strategy address variable to that address.
+
+    //if the assets are unwrapped to be the vault native token...transfer assets when beginning to change strategies
+    //if the assets are wrapped as something else....transfer them to the new strategy after the vault is updated
+*/
+    function beginStrategyChangeStrat(address newStrat) public onlyStrategy()
     {
-      strategy = newStrat;
+      newStrategy = newStrat;
     }
 
+    function beginStrategyChangeOp(address newStrat) public onlyOperator()
+    {
+      newStrategy = newStrat;
+    }
+
+    function completeStrategyChange() public onlyNewStrategy()
+    {
+      strategy = msg.sender;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                     STRATEGY ACCESSED FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     //Non-standard - called by the strategy to transfer all funds to the strategy. 
     function transferFundsToStrategy() public onlyStrategy()
@@ -258,41 +274,27 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
         _updateUnderlying(); //Update the underlying value in this contract.
     }
 
-    
-    //To be honest Im concerned that some fuck wucky security issue could occur by allowing interactions in the same call.
+    /*//////////////////////////////////////////////////////////////
+                     ACCOUNTING LOGIC
+    //////////////////////////////////////////////////////////////*/
 
-// NOTE: The vault strategy contract MUST call an approval for all its assets before calling this function
-    //Nonstandard - called by the strategy to transfer all funds to this vault and update underlying, then it allows user interactions
-     function transferFundsBackFromStrategyInteraction(uint256 strategyBal) public onlyStrategy()
-    {
-        asset.safeTransferFrom(msg.sender, address(this), strategyBal); //transfer from the strategy (msg.sender) to this contract, all of the strategy's assets
-        _updateUnderlying(); //Update the underlying value in this contract.
-        canInteract = true;
-    }
-
-
-
-    /*////////////////  Accounting Logic: /////////////////////*/
-
-    //Might remove this....Unsure if it is neccessary for vault movement interactions
-
-    //ERC2626 standard for totalAssets() - returns the total amount of vault shares
-    function totalAssets() public view returns (uint256)
+    function totalAssets() public view returns (uint256) //returns the total amount of vault shares
     {
         uint256 supply = totalSupply; 
         return supply;
     }
-
-
+    /* //////////////////////////////////////////
+    totalAssets() function is currently unused.
+    The below functions reference the vault's total assets using 'underlying_in_strategy' variable
+    Function names are still 4626 compliant. 
+    //////////////////////////////////////////*/
     function convertToShares(uint256 assets) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
-
         return supply == 0 ? assets : assets.mulDivDown(supply, underlying_in_strategy);
     }
 
     function convertToAssets(uint256 shares) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
-
         return supply == 0 ? shares : shares.mulDivDown(underlying_in_strategy, supply);
     }
 
@@ -302,15 +304,12 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
 
     function previewMint(uint256 shares) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
-
         return supply == 0 ? shares : shares.mulDivUp(underlying_in_strategy, supply);
-        //Make sure the minter mints the right amount of shares for the total underyling amount of assets
-        
+        //Make sure the minter mints the right amount of shares for the underyling amount of assets
     }
 
     function previewWithdraw(uint256 assets) public view returns (uint256) {
         uint256 supply = totalSupply; // Saves an extra SLOAD if totalSupply is non-zero.
-
         return supply == 0 ? assets : assets.mulDivUp(supply, underlying_in_strategy);
         //Give the user their percentage of the total underyling amount of vault assets.
     }
@@ -326,3 +325,24 @@ import {FixedPointMathLib} from "https://github.com/transmissions11/solmate/blob
     function maxDeposit(address) public pure returns (uint256) { //pure because no blockchain data read
         return type(uint256).max; 
     }
+
+    function maxMint(address) public pure returns (uint256) { //pure because no blockchain data read
+        return type(uint256).max;
+    }
+
+    function maxWithdraw(address owner) public view returns (uint256) {
+        return convertToAssets(balanceOf[owner]);
+    }
+
+    function maxRedeem(address owner) public view returns (uint256) {
+        return balanceOf[owner];
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          INTERNAL HOOKS LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function beforeWithdraw(uint256 assets, uint256 shares) internal virtual {}
+
+    function afterDeposit(uint256 assets, uint256 shares) internal virtual {}
+}
