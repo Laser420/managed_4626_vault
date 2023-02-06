@@ -1,41 +1,75 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-
-/*
-THIS TEMPLATE USES THE IERC4626 INTERFACE FROM: https://github.com/fei-protocol/ERC4626/blob/main/src/interfaces/IERC4626.sol
-I have flattened this interface and Transmission11's Solmate ERC20 contract into this contract.
-
-Strategies would normally be automated with multiple layers.
-These calls are the core logic for but would be used in larger functions meant to zap into a strategy.
-
-
-*/
-
 pragma solidity >=0.8.0;
 
 contract strategy_template {
 
-    address vaultAddress;
+    address vaultAddress; //
     IERC4626 vaultInterface;
 
-    address assetAddress;
-    ERC20 assetInterface;
-    
+    address assetAddress; //WETH address
+    ERC20_WETH assetInterface; //WETH interface
+
+    address ankrAddress; //ankrETH address
+    ERC20_WETH ankrInterface; //ankrETH interface - just using the ERC20 interface already available
+
+    address poolAddress;
+    CurvePool poolInterface;
+
+    address operator; //The vault's operator
+    address newOperator; //A variable used for safer transitioning between vault operators
+
+
     constructor() {
 
+        operator = msg.sender;
+
         /* ////////// Vault Specific Instantiations ////////// */
-
         vaultAddress = 0xd598930e2474fFa73f1E1f29746ddEA7D5976dC4; //set this to be the vault address
-            //Current Goerli Vault deployment area
-        vaultInterface = IERC4626(vaultAddress); //this intializes an interface with the vault
+        vaultInterface = IERC4626(vaultAddress); //this initializes an interface with the vault
         
-        assetAddress = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;//set this to be the vault's asset address
-            //Goerli WETH address
-        assetInterface = ERC20(assetAddress); //this intializes an interface with the asset
 
+        assetAddress = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;//set this to be the vault's asset address
+        assetInterface = ERC20_WETH(assetAddress); //this initializes an interface with the asset 
+        //In this specific instance...the asset is WETH...the interface is Transmissions11's ERC20 interface with two WETH functions added
+        //I am sorry for butchering your boy lord Solmate.
+        //Key concern...will my modified solmate ERC20 interface work?
+
+        ankrAddress = 0x0000000000000000000000000000000000000000; //set this to be the ankrETH asset address
+        ankrInterface = ERC20_WETH(ankrAddress); //ERC20 interface for ankrETH
+        
+
+        poolAddress = 0x0000000000000000000000000000000000000000; //set this to be the curve pool's address
+        poolInterface = CurvePool(poolAddress); //this initializes an interface to the curve Pool
          /* ////////// Vault Specific Instantiations ////////// */
     }
 
-    /* ////////// Vault Interactions ////////// */
+    /*////// Operator functions and modifiers ///// */
+
+    modifier onlyOperator() {
+        require(msg.sender == operator, "You aren't the operator.");
+        _;
+    }
+
+    //Make sure only the address set in the newOperator variable can use a given function
+    modifier onlyNewOperator() {
+        require(msg.sender == newOperator, "You aren't the new operator.");
+        _;
+    }
+
+    function setNewOperator(address op) public onlyOperator()
+    {
+     newOperator = op;
+    }
+
+    //Non-standard - called by the newOperator address to officialy take over control as the new vault operator
+    function changeToNewOperator() public onlyNewOperator(){
+        operator = newOperator;
+    }
+
+    /*////// Operator functions ///// */
+
+
+    /* ////////// Vault Interactions - Internal functions ////////// */
 
     //Send all of the vault's assets to this strategy
     // This should be it. The function is meant to be a one stop shop.
@@ -52,19 +86,109 @@ contract strategy_template {
         vaultInterface.transferFundsBackFromStrategy(totalAssets); //Call the vault function that withdraws this amount from this strategy contract
     }
 
+     /* ////////// END Vault Interactions - Internal functions ////////// */
 
-    // Test functions
-    function getAssetsFromVaultTest() public {
-        getAssetsFromVault();
+
+    /*/////////// Vault Executions  //////////////*/
+
+//Does a function that isn't payable.....does it allow for calling payable functions within it?
+//Essentially....do I need to allocate gas somewhere in here for this exchange function to work?
+//I cannot remember that being neccessary since it is a interface call to a payable function...not an address to address transfer call
+
+//Enter the strategy
+    function executeStrategyEnter () public onlyOperator {
+
+        getAssetsFromVault(); //Get assets from the vault - WETH from vault
+
+        uint256 balance = assetInterface.balanceOf(address(this)); //Get the strategy's new balance of WETh
+
+        assetInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
+        //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
+
+        uint256 expected = (poolInterface.get_dy(0, 1, address(this).balance ) / 10000) * 9750; 
+        //Get this contract's new balance of raw WETH, and calculate an expected value for the curve swap with 250 bps allowance
+
+        poolInterface.exchange {value: address(this).balance} (0,1, address(this).balance, expected);
+        //Call the curve pool exchange function with a msg.value of the strategy's ETH balance
+        //Swapping pool coin 0 (ETH) with pool coin 1 (ankrETH), the amount is the same as the msg.value, and expected is seen above
     }
 
-    function returnAssetsToVaultTest() public {
-        returnAssetsToVault();
+//Exit the strategy
+    function executeStrategyExit () public onlyOperator {
+        uint256 expected = ( poolInterface.get_dy( 1, 0, ankrInterface.balanceOf(address(this))  ) / 10000 ) * 9750; 
+        //Get this contract's balance of ankrETH, and calculate an expected value for the curve swap with 250 bps allowance
+
+        ankrInterface.approve(poolAddress, ankrInterface.balanceOf(address(this)));
+        //Call an approval for the pool to use this ankrETH ERC20
+
+        poolInterface.exchange {value: 0} ( 1 , 0 , ankrInterface.balanceOf(address(this)), expected);
+        //Call the curve pool exchange function with a msg.value of 0 to exchange all of this contract's 
+        //Swapping pool coin 1 (ankrETH) with pool coin 0 (ETH), the total ankrETH balance of this contract
+
+        assetInterface.deposit {value: address(this).balance};
+        //Deposit all of this recently acquired ETH into the WETH contract.
+
+        returnAssetsToVault(); //Return all of these assets to the vault.
     }
 
+    //This function sends this vault's ankrETH to whatever address is the vault's current strategy
+    //FOR THE LOVE OF GOD....ENSURE THAT THIS OTHER STRATEGY IS CAPABLE OF HANDLING AnkrETH
+    //Call this after changing strategies....
+    //if the new strategy cannot handle ankrETH then first call executeStrategyExit
+    function sendAnkrETHToNewStrategy() public onlyOperator {
+        address strat = vaultInterface.checkStrategy();
+        ankrInterface.transfer(strat, ankrInterface.balanceOf(address(this)));
+    }
+ 
+    //Begin changing strategies by setting a new strategy address
+    function beginStrategyChange(address newStrat) public onlyOperator {
+        vaultInterface.beginStrategyChangeStrat(newStrat);
+    }
+
+    //Confirm this is the new strategy to switch to
+    function confirmNewStrategy() public onlyOperator {
+        vaultInterface.completeStrategyChange();
+    }
+
+    /*/////////// END Vault Executions  //////////////*/
+
+    //After this works...implement functional ownership of strategies...
+    //Also ensure proper ownership of the vault
+
+    /* PLANNING FOR TRANSFERRING ASSETS DIRECTLY STRATEGY TO STRATEGY:
+    Vault has another address variable: newStrategy
+        Ability to see this address through a checker function on the vault
+    Vault then has a function: newStrategyChange
+        This sets a new newStrategy address
+
+    This strategy has a function that can be called by only the newStrategy address
+        Using a modifier checking if the caller matches the newStrategy set on the vault
+    This function sends the newStrategy all of the strategy's assets
+    */
 
 }
 
+interface CurvePool {
+    //Get the coins in the pool
+    function coins (uint256 arg) external view returns(address);
+
+    //"Get the amount of coin j one would receive for swapping _dx of coin i."
+    function get_dy (int128 i, int128 j, uint256 dx) external view returns (uint256);
+
+    //Get the amount of dx you would need to swap in order to obtain dy of the other coin
+    function get_dx (int128 i, int128 j, uint256 dy) external view returns (uint256);
+    
+    /*Perform an exchange between two coins.
+        i: Index value for the coin to send
+        j: Index value of the coin to receive
+        _dx: Amount of i being exchanged
+        _min_dy: Minimum amount of j to receive
+    Returns the actual amount of coin j received. 
+      To get _min_dy ....take the value of get_dy and do the slippage math
+    */// This function is external BUT PAYABLE ONLY FOR THIS SPECIFIC TYPE OF CURVE POOL
+    function exchange (int128 i, int128 j, uint256 _dx ,uint256 _min_dy) payable external;
+
+}
 
 pragma solidity >=0.8.0;
 
@@ -72,7 +196,7 @@ pragma solidity >=0.8.0;
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC20.sol)
 /// @author Modified from Uniswap (https://github.com/Uniswap/uniswap-v2-core/blob/master/contracts/UniswapV2ERC20.sol)
 /// @dev Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it.
-abstract contract ERC20 {
+abstract contract ERC20_WETH {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -270,6 +394,16 @@ abstract contract ERC20 {
 
         emit Transfer(from, address(0), amount);
     }
+
+
+    //I am so sorry Transmissions11 but I need this interface specifically for WETH...forgive me father
+    
+    //WETH Deposit function
+    function deposit () external payable virtual;
+
+    //WETH Withdraw function
+    function withdraw (uint256 amt) external virtual; 
+
 }
 
 
@@ -277,7 +411,7 @@ pragma solidity >=0.8.0;
 
 /// @title ERC4626 interface
 /// See: https://eips.ethereum.org/EIPS/eip-4626
-abstract contract IERC4626 is ERC20 {
+abstract contract IERC4626 is ERC20_WETH {
     /*////////////////////////////////////////////////////////
                       Events
     ////////////////////////////////////////////////////////*/
@@ -302,9 +436,17 @@ abstract contract IERC4626 is ERC20 {
     /// is "managed" by Vault.
     function totalAssets() external view virtual returns (uint256 totalAssets);
 
+    //Begin the strategy change...called here if this is the old contract
+    function beginStrategyChangeStrat(address newStrat) external virtual;
+
+    //Complete the strategy change...called here if this is the new contract
+    function completeStrategyChange() external virtual;
+
     /*////////////////////////////////////////////////////////
                      Admin/Deposit/Withdrawal Logic
     ////////////////////////////////////////////////////////*/
+
+    //CHANGE STRATEGY FUNCTIONS NEEDED HERE
 
     //Non-standard - called by the strategy to transfer all funds to the strategy. 
     //This call has a modifier on it to make sure only the strategy contract can call it
@@ -402,4 +544,3 @@ abstract contract IERC4626 is ERC20 {
     /// given current on-chain conditions.
     function previewRedeem(uint256 shares) external view virtual returns (uint256 assets);
 }
-
