@@ -650,7 +650,6 @@ pragma solidity >=0.8.0;
         canInteract = true; //Set whether or not the vault may be interacted with
     }
 
-
     /*//////////////////////////////////////////////////////////////
                                Modifiers
     //////////////////////////////////////////////////////////////*/
@@ -822,22 +821,19 @@ pragma solidity >=0.8.0;
 
 /* Changing strategies:
     'beginStrategyChangeStrat' is called from the old strategy contract to set the newStrategy address.
-    IN THIS INTERMISSION: You could do a direct strategy-to-strategy transfer of assets 
-        This would work provided you do not need to allow user interactions between strategies
-        DO NOT use strategy to strategy transfers WITHOUT unwrapping into the vault native asset
-        Custom strategy to strategy tansfers would create debt between old strategies and new ones 
-    //But Author says you, "what if I am an American and love debt".....well in that case go get a reverse mortage 
-
     'beginStrategyChangeOp' is called from the operator to set the newStrategy address.
         This is used for when the vault is not in an active strategy and wants to upgrade to a new strategy.
     'completeStrategyChange' is called from the newStrategy and changes the strategy address variable to that address.
+
+    //if the assets are unwrapped to be the vault native token...transfer assets when beginning to change strategies
+    //if the assets are wrapped as something else....transfer them to the new strategy after the vault is updated
 */
     function beginStrategyChangeStrat(address newStrat) public onlyStrategy()
     {
       newStrategy = newStrat;
     }
 
-    function beginStrategyChangeOp(address newStrat) public onlyStrategy()
+    function beginStrategyChangeOp(address newStrat) public onlyOperator()
     {
       newStrategy = newStrat;
     }
@@ -846,7 +842,6 @@ pragma solidity >=0.8.0;
     {
       strategy = msg.sender;
     }
-
 
     /*//////////////////////////////////////////////////////////////
                      STRATEGY ACCESSED FUNCTIONS
