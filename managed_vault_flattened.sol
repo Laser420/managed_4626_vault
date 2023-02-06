@@ -604,7 +604,7 @@ pragma solidity >=0.8.0;
 
 
 /// @notice Manually Operated 4626 Yield Vault
-/// @author Originally from Solmate(https://github.com/transmissions11/solmate/blob/main/src/mixins/ERC4626.sol), modified and edited by Laser420
+/// @author Laser420 with ERC4626 template sourced from transmissions11's Solmate library
 ///
 
    contract ERC4626 is ERC20 {
