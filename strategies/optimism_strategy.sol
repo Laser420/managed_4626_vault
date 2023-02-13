@@ -1,3 +1,8 @@
+//Strategy setting works....strategy to strategy changing is unknown...
+//As is sending assets from strategy to strategy. 
+
+
+
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
@@ -101,6 +106,7 @@ contract optimism_strategy {
 
         uint256 balance = assetInterface.balanceOf(address(this)); //Get the strategy's new balance of WETh
 
+//Do I need an approval for the withdrawing of WETH into ETH???
         assetInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
         //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
 
@@ -529,3 +535,4 @@ abstract contract IERC4626 is ERC20_WETH {
     /// given current on-chain conditions.
     function previewRedeem(uint256 shares) external view virtual returns (uint256 assets);
 }
+
