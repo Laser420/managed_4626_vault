@@ -112,7 +112,7 @@ contract strategy_template {
     function unWrap() public onlyOperator {
         uint256 balance = assetInterface.balanceOf(address(this)); 
 
-        assetInterface.approve(address(this), balance);//See if calling an approval works to unwrap
+        assetInterface.approve(assetAddress, balance);//See if calling an approval works to unwrap
 
         assetInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
         //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
