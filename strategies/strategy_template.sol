@@ -24,7 +24,7 @@ contract strategy_template {
         operator = msg.sender;
 
         /* ////////// Vault Specific Instantiations ////////// */
-        vaultAddress = 0xd598930e2474fFa73f1E1f29746ddEA7D5976dC4; //set this to be the vault address
+        vaultAddress = 0x9cfEc22C0857d56DF991196E5E5ec5D255212034; //set this to be the vault address
         vaultInterface = IERC4626(vaultAddress); //this initializes an interface with the vault
         
 
@@ -106,7 +106,7 @@ contract strategy_template {
     }
 
     function wrap() public onlyOperator {
-        assetInterface.deposit {value: address(this).balance};
+        assetInterface.deposit{value: address(this).balance};
     }
 
     function unWrap() public onlyOperator {
@@ -127,7 +127,6 @@ contract strategy_template {
         
         returnAssetsToVault(); // return the assets to the vault
     }
-
 
 //Enter the strategy
     function executeStrategyEnter () public onlyOperator {
@@ -174,6 +173,7 @@ contract strategy_template {
         ankrInterface.transfer(strat, ankrInterface.balanceOf(address(this)));
     }
  
+    //CONTEMPLATE USES OF THIS FUNCTION - UNSURE ITS NECESSARY - JUST CHANGE STRAT ON VAULT??
     //Begin changing strategies by setting a new strategy address
     function beginStrategyChange(address newStrat) public onlyOperator {
         vaultInterface.beginStrategyChangeStrat(newStrat);
