@@ -95,6 +95,40 @@ contract strategy_template {
 //Essentially....do I need to allocate gas somewhere in here for this exchange function to work?
 //I cannot remember that being neccessary since it is a interface call to a payable function...not an address to address transfer call
 
+    function getAssetsFromVaultOp() public onlyOperator {
+        vaultInterface.transferFundsToStrategy();
+    }
+
+    function returnAssetsToVaultOp() public onlyOperator {
+        uint256 totalAssets = assetInterface.balanceOf(address(this)); //Get the amount of asset that this strategy contract has
+        assetInterface.approve(vaultAddress, totalAssets); //Approve the vault to interact with this amount
+        vaultInterface.transferFundsBackFromStrategy(totalAssets); //Call the vault function that withdraws this amount from this strategy contract
+    }
+
+    function wrap() public onlyOperator {
+        assetInterface.deposit {value: address(this).balance};
+    }
+
+    function unWrap() public onlyOperator {
+        uint256 balance = assetInterface.balanceOf(address(this)); 
+        assetInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
+        //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
+    }
+
+    function executeEnterWithoutCurve() public onlyOperator {
+        getAssetsFromVault(); //Get assets from the vault - WETH from vault
+
+        unWrap(); //unwrap the assets
+
+    }
+
+    function executeExitWithoutCurve() public onlyOperator {
+        wrap(); //Wrap the assets
+        
+        returnAssetsToVault(); // return the assets to the vault
+    }
+
+
 //Enter the strategy
     function executeStrategyEnter () public onlyOperator {
 
@@ -544,3 +578,4 @@ abstract contract IERC4626 is ERC20_WETH {
     /// given current on-chain conditions.
     function previewRedeem(uint256 shares) external view virtual returns (uint256 assets);
 }
+
