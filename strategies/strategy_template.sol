@@ -111,6 +111,9 @@ contract strategy_template {
 
     function unWrap() public onlyOperator {
         uint256 balance = assetInterface.balanceOf(address(this)); 
+
+        assetInterface.approve(address(this), balance);//See if calling an approval works to unwrap
+
         assetInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
         //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
     }
@@ -186,19 +189,7 @@ contract strategy_template {
 
     /*/////////// END Vault Executions  //////////////*/
 
-    //After this works...implement functional ownership of strategies...
-    //Also ensure proper ownership of the vault
-
-    /* PLANNING FOR TRANSFERRING ASSETS DIRECTLY STRATEGY TO STRATEGY:
-    Vault has another address variable: newStrategy
-        Ability to see this address through a checker function on the vault
-    Vault then has a function: newStrategyChange
-        This sets a new newStrategy address
-
-    This strategy has a function that can be called by only the newStrategy address
-        Using a modifier checking if the caller matches the newStrategy set on the vault
-    This function sends the newStrategy all of the strategy's assets
-    */
+   //Need for a fallback function regarding ETH deposits??
 
 }
 
@@ -433,10 +424,13 @@ abstract contract ERC20_WETH {
     //I am so sorry Transmissions11 but I need this interface specifically for WETH...forgive me father
     
     //WETH Deposit function
-    function deposit () external payable virtual;
+    //Had this as external and not public - fixed?
+    function deposit () public payable virtual;
 
     //WETH Withdraw function
-    function withdraw (uint256 amt) external virtual; 
+    //I had this as uint256 instead of uint
+    //I also had it as external and not public - fixed?
+    function withdraw (uint amt) public virtual; 
 
 }
 
