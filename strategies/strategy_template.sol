@@ -106,15 +106,15 @@ contract strategy_template {
     }
 
     function wrap() public onlyOperator {
-        assetInterface.deposit{value: address(this).balance};
+        assetInterface.deposit{value: address(this).balance}();
     }
 
     function unWrap() public onlyOperator {
-        uint256 balance = assetInterface.balanceOf(address(this)); 
+        uint256 bal = assetInterface.balanceOf(address(this));
 
-        assetInterface.approve(assetAddress, balance);//See if calling an approval works to unwrap
+        assetInterface.approve(assetAddress, bal);//Approve the WETH contract to approve this balance
 
-        assetInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
+        assetInterface.withdraw(bal); //Unwrap assets - WETH into ETH - 
         //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
     }
 
@@ -161,7 +161,7 @@ contract strategy_template {
         //Call the curve pool exchange function with a msg.value of 0 to exchange all of this contract's 
         //Swapping pool coin 1 (ankrETH) with pool coin 0 (ETH), the total ankrETH balance of this contract
 
-        assetInterface.deposit {value: address(this).balance};
+        assetInterface.deposit {value: address(this).balance}();
         //Deposit all of this recently acquired ETH into the WETH contract.
 
         returnAssetsToVault(); //Return all of these assets to the vault.
@@ -187,9 +187,9 @@ contract strategy_template {
         vaultInterface.completeStrategyChange();
     }
 
-    /*/////////// END Vault Executions  //////////////*/
-
-   //Need for a fallback function regarding ETH deposits??
+    //Fallback functions
+   fallback() external payable {}
+   receive() external payable {}
 
 }
 
@@ -572,4 +572,3 @@ abstract contract IERC4626 is ERC20_WETH {
     /// given current on-chain conditions.
     function previewRedeem(uint256 shares) external view virtual returns (uint256 assets);
 }
-
