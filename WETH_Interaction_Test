@@ -38,12 +38,11 @@ contract WETH_Interaction {
         wethInterface.deposit{value: address(this).balance};
     }
 
-    function withdraw() public onlyOperator {
-        uint256 balance = wethInterface.balanceOf(address(this));
+    function withdraw(uint256 amt) public onlyOperator {
 
-        wethInterface.approve(wethAddress, balance);//Approve the WETH contract to approve this balance
+        wethInterface.approve(wethAddress, amt);//Approve the WETH contract to approve this balance
 
-        wethInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
+        wethInterface.withdraw(amt); //Unwrap assets - WETH into ETH - 
         //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
     }
 
