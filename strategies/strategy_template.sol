@@ -572,3 +572,4 @@ abstract contract IERC4626 is ERC20_WETH {
     /// given current on-chain conditions.
     function previewRedeem(uint256 shares) external view virtual returns (uint256 assets);
 }
+
