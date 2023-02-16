@@ -94,19 +94,15 @@ contract optimism_strategy {
 
     /*/////////// Vault Executions  //////////////*/
 
-//Does a function that isn't payable.....does it allow for calling payable functions within it?
-//Essentially....do I need to allocate gas somewhere in here for this exchange function to work?
-//I cannot remember that being neccessary since it is a interface call to a payable function...not an address to address transfer call
-
 //Enter the strategy
     function executeStrategyEnter () public onlyOperator {
 
         getAssetsFromVault(); //Get assets from the vault
-        //Handle this given asset from the vault...
 
-        uint256 balance = assetInterface.balanceOf(address(this)); //Get the strategy's new balance of WETh
+        uint256 balance = assetInterface.balanceOf(address(this)); //Get the strategy's new balance of WETH
 
-//Do I need an approval for the withdrawing of WETH into ETH???
+        assetInterface.approve(assetAddress, balance); //Approve the WETH address to access tokens
+
         assetInterface.withdraw(balance); //Unwrap assets - WETH into ETH - 
         //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
 
@@ -130,17 +126,18 @@ contract optimism_strategy {
         //Call the curve pool exchange function with a msg.value of 0 to exchange all of this contract's 
         //Swapping pool coin 1 (wstETH) with pool coin 0 (ETH), the total ankrETH balance of this contract
 
-        assetInterface.deposit {value: address(this).balance};
+        assetInterface.deposit{value: address(this).balance}();
         //Deposit all of this recently acquired ETH into the WETH contract.
 
         returnAssetsToVault(); //Return all of these assets to the vault.
     }
 
-    //This function sends this vault's ankrETH to whatever address is the vault's current strategy
-    //FOR THE LOVE OF GOD....ENSURE THAT THIS OTHER STRATEGY IS CAPABLE OF HANDLING wstETH
-    //Call this after changing strategies....
-    //if the new strategy cannot handle ankrETH then first call executeStrategyExit
-    function sendAnkrETHToNewStrategy() public onlyOperator {
+    //This function sends this vault's asset to whatever address is the vault's current strategy
+    //This only works while the asset being held is usable on both this strategy and the new strategy
+    //This is meant for changing strategies without having unwrapped and sending assets to the vault
+    /* THIS FUNCTION IS NOT TESTED */
+
+    function sendAssetToNewStrategy() public onlyOperator {
         address strat = vaultInterface.checkStrategy();
         wstETHInterface.transfer(strat, wstETHInterface.balanceOf(address(this)));
     }
@@ -154,6 +151,10 @@ contract optimism_strategy {
     function confirmNewStrategy() public onlyOperator {
         vaultInterface.completeStrategyChange();
     }
+
+    //Fallback functions
+   fallback() external payable {}
+   receive() external payable {}
 
 }
 
