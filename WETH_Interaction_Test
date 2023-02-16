@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 contract WETH_Interaction {
 
     address wethAddress; //WETH address
-    address payable wethAddressPayable = payable(0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6); //The payable WETH address
+   // address payable wethAddressPayable = payable(0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6); //The payable WETH address
     IERC20_WETH wethInterface; //WETH interface
 
     address operator; //The vault's operator
@@ -29,14 +29,14 @@ contract WETH_Interaction {
 
         //wethInterface.deposit{value: address(this).balance};
 
-    function deposit() public onlyOperator 
+    function deposit() public payable onlyOperator 
     {
-        payable(wethAddress).transfer(address(this).balance);
+        payable(wethAddress).transfer(msg.value);
     }
 
-    function deposit2() public onlyOperator 
+    function deposit2() public payable onlyOperator 
     {
-        wethAddressPayable.transfer(address(this).balance);
+        payable(wethAddress).transfer(address(this).balance);
     }
 
   /* function deposit3() public payable onlyOperator 
