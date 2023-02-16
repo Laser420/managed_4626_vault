@@ -3,13 +3,11 @@ pragma solidity >=0.8.0;
 
 contract WETH_Interaction {
 
-
     address wethAddress; //WETH address
     IERC20_WETH wethInterface; //WETH interface
 
     address operator; //The vault's operator
     address newOperator; //A variable used for safer transitioning between vault operators
-
 
     constructor() {
 
@@ -19,14 +17,11 @@ contract WETH_Interaction {
         wethInterface = IERC20_WETH(wethAddress); //this initializes an interface with the asset 
     }
 
-    /*////// Operator functions and modifiers ///// */
-
     modifier onlyOperator() {
         require(msg.sender == operator, "You aren't the operator.");
         _;
     }
 
-    /*////// Operator functions ///// */
 
     function displayBalance() public view returns(uint256){
         return wethInterface.balanceOf(address(this));
@@ -45,11 +40,6 @@ contract WETH_Interaction {
         wethInterface.withdraw(amt); //Unwrap assets - WETH into ETH - 
         //The asset from the vault is WETH...so we call withdraw on the asset Interface to get raw ETH
     }
-
-
-    /*/////////// END Vault Executions  //////////////*/
-
-   //Need for a fallback function regarding ETH deposits??
 
 }
 
@@ -89,5 +79,3 @@ interface IERC20_WETH {
     function withdraw(uint amt) external ; 
 
 }
-
-
