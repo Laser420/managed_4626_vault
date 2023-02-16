@@ -39,6 +39,7 @@ contract WETH_Interaction {
       (bool success, bytes memory data) = payable(wethAddress).call{value: msg.value}("");
     }
 
+//Does not appear to work - gas used up with no call - although transaction succeeded
     function deposit3() public payable onlyOperator
     {
         wethInterface.deposit{value: msg.value};
