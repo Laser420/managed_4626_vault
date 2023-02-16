@@ -36,7 +36,17 @@ contract WETH_Interaction {
 
     function deposit2() public payable onlyOperator 
     {
-        payable(wethAddress).transfer(address(this).balance);
+      (bool success, bytes memory data) = payable(wethAddress).call{value: msg.value}("");
+    }
+
+    function deposit3() public payable onlyOperator
+    {
+        wethInterface.deposit{value: msg.value};
+    }
+
+    function deposit4() public payable onlyOperator
+    {
+         wethInterface.deposit{value: msg.value}();
     }
 
   /* function deposit3() public payable onlyOperator 
