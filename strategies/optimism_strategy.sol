@@ -1,8 +1,3 @@
-//Strategy setting works....strategy to strategy changing is unknown...
-//As is sending assets from strategy to strategy. 
-
-
-
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
