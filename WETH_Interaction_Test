@@ -29,15 +29,8 @@ contract WETH_Interaction {
 
         //wethInterface.deposit{value: address(this).balance};
 
-//This doesn't work
-    function deposit() public payable onlyOperator 
-    {
-        payable(wethAddress).transfer(msg.value);
-    }
 
-//Kind of when payable and used msg.value - BUT the function caller was setting the msg.value
-//And the msg.value got deducted from the function caller
-    function deposit2() public onlyOperator 
+    function deposit1() public onlyOperator 
     {
     require(address(this).balance > 0);
       (bool success, bytes memory data) = payable(wethAddress).call{value: address(this).balance}("");
@@ -45,18 +38,11 @@ contract WETH_Interaction {
 
 
 //This appears to work but it deposits what the user sends as payable....not what the contract owns
-    function deposit3() public onlyOperator
+    function deposit2() public onlyOperator
     {
         require(address(this).balance > 0);
          wethInterface.deposit{value: address(this).balance}();
     }
-
-
-  /* function deposit3() public payable onlyOperator 
-    {
-        wethAddressPayable.transfer(msg.value);
-    }
-*/
 
 
     function withdraw() public onlyOperator {
