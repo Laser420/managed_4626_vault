@@ -4,7 +4,7 @@
 
 ### The operator decides when to allow users to deposit and withdraw from the vault. When these interactions are disabled, the vault's assets are elsewhere, in a vault strategy contract farming yield. The operator also creates the vault strategy contracts which are meant to function as zap contracts and leverage DEFI legos to farm the greatest yield for the vault's users.
 
-### An Optimism deployment is live: Interactions are currently unlocked as the strategy is not active. Aka. in theory you could invest if you were...Optimistic
+#### An Optimism deployment is live: Interactions are currently unlocked as the strategy is not active. Aka. in theory you could invest if you were...Optimistic
 Sanity lost.
 
 ### System Deployment and Testing Steps
