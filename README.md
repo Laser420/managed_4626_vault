@@ -4,72 +4,38 @@
 
 ### The operator decides when to allow users to deposit and withdraw from the vault. When these interactions are disabled, the vault's assets are elsewhere, in a vault strategy contract farming yield. The operator also creates the vault strategy contracts which are meant to function as zap contracts and leverage DEFI legos to farm the greatest yield for the vault's users.
 Testing Steps
-# These testing steps are somewhat outdated - particularly how to upgrade and change strategy. I will fix this once the backend MVP is completed. 
-# 
-1. Deploy Vault
-	Constructer takes: 
-				WETH Address,
-				Name for our ERC20 vault token,
-				Token for our ERC20 vault token,
-  Verify Vault on Etherscan.
 
-2. Deploy Strategy
-	Set the hardcoded vault and WETH addresses in Constructer before deployment
-   Verify Strategy on Etherscan.
+##Optimism deployment live: Interactions are currently unlocked as the strategy is not active. Aka. in theory you could invest if you were...Optimistic
+Sanity lost.
 
-
-3. Simulate a basic user interaction (entering into vault position)
-	User first calls an approval() on the WETH contract to approve the vault for x amount of WETH
-		(Yes we are using manual approval, approval can always be done on the website 
-
-	User then calls deposit() (or mint if denominating in shares)
-	Ensure that this call properly updates underlying. 
-
-
-4. Configure the strategy by calling changeStrategy() with the deployed strategies's address
-
-
-5. Lock interaction with the vault by calling updateInteractions() with a value of false.
-	Attempt to call: deposit(), mint(), redeem(), withdraw() to confirm they are not possible. 
-
-
-4. Simulate strategy interaction
-	Strategies would normally be automated with multiple layers.
-	These calls are the core logic for but would be used in larger functions meant to zap into a strategy.
-
-	Ensure that conventional users cannot call strategy functions.
-	
-	Call getAssetsFromVaultTest() which calls the internal function of 'getAssetsFromVault'
-	This sends a call to the Vault contract to then execute a function which sends the strategy all of the vault's assets.
-Make sure this properly updates the 'underlying_in_strategy' value held by the vault
-
-	Send the strategy a given amount of the asset just using basic blockchain transfer calls on metamask
-	This is meant to simulate yield accrued in a vault strategy.
-	
-	Call returnAssetsToVaultTest() which calls the internal function of "returnAssetsToVault'
-	This sends a call to the Vault contract to then execute a function which sends the vault all of the strategies assets.
-Make sure this properly updates the 'underlying_in_strategy' value held by the vault
-
-
-5. Unlock interaction with the vault by calling updateInteractions() with a value of true
-
-
-6. Simulate users entering and withdrawing
-	Repeat Step 3 with a new user
-		Ensure that the vault shares are still proportional.
-
-	Now, withdraw some of the original user's assets. 
-		Ensure that withdrawal correctly updates underlying.
-		Ensure that the vault shares are still proportional 
-
-//CONCERN: users depositing and entering in the same block? This shouldn't be an issue?
-
-
-Some security measures to check using a secondary address:
-Ensure nobody but the vault operator can call:
-	changeOperator()
-	changeStrategy()
-	updateUnderlying()
-	transferFundsBackFromStrategy()
-	transferFundsToStrategy()
-	transferFundsBackFromStrategyInteraction() //?? this one is an unknown if I will use it
+### System Deployment and Testing Steps
+1. Deploy vault contract (flattened version).
+2. Deploy strategy contract.
+Note: both of these deployments are done through remix simply because I can (and not because I haven't properly learned Foundry yet)
+3. Change the strategy.
+	For the genesis strategy (fancy words) this is done using the operator function on the vault, afterwards strategy to strategy upgrades are possible.
+4. Ensure calls meant for only the operator...can only be called by the Operator.
+5. Ensure calls meant for only the vault...can only be called by the Vault.
+6. Ensure calls located on the vault for the strategy, can only be called by the strategy.	
+7. Ensure calls located on the vault for the NEW strategy, can only be called by the NEW strategy [USED BY THE STRATEGY UPGRADE SYSTEM].
+8. Test setting of new operators.
+	Set new operator for Vault.
+	Set new operator for Strategy.
+	Swap back (because whomever I've forced into helping me with this probably won't want to do everything else afterwards)
+9. Deposit/Mint assets to the vault.
+11. Lock interactions to the vault and TEST
+	That the vault does not allow deposit/minting new assets.
+	That the vault does not allow redeem/withdrawing assets (because those assets are not currently there...)
+10. Test the strategy - Enter, Farm, Exit
+	Test entering the strategy and wrapping up the vault's assets into whatever Defi Legos are making money.
+	Manually acquire the same asset that the strategy wants and send it to the strategy to simulate the accrual of yield.
+	Test exiting the strategy and unwrapping from these Defi Legos.
+    10B. Test strategy to strategy upgrades and direct asset sending....
+    	Test strategy to strategy upgrades.
+    	Direct asset Sending:
+		Don't worry too much for now if it doesn't work. The strategy can always be changed back and assets returned to the vault. 
+		(This backup only fails if the DEX(s) we used in the strategy somehow fail)
+####Note: Definitely check again that the yield into shares is properly calculated...a significant amount of testing showed it was fine earlier
+####: This can be done by manually updating the underlying BEFORE unlocking interactions
+11. Unlock interactions to the vault (Should automatically updates the underlying values anyway)
+12. Make ANOTHER strategy contract.
