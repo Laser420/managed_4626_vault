@@ -28,7 +28,7 @@ contract WETH_Interaction {
 
     function deposit() public onlyOperator 
     {
-        wethAddressPayable.transfer(address(this).balance);
+        payable(wethAddressPayable).transfer(address(this).balance);
     }
 
     function withdraw() public onlyOperator {
