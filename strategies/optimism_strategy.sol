@@ -1,3 +1,8 @@
+//Strategy setting works....strategy to strategy changing is unknown...
+//As is sending assets from strategy to strategy. 
+
+
+
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
@@ -24,7 +29,7 @@ contract optimism_strategy {
         operator = msg.sender;
 
         /* ////////// Vault Specific Instantiations ////////// */
-        vaultAddress = 0x353bf54460d24c65dD5242168F95eA0fe2025961; //Optimism WMT1 vault address
+        vaultAddress = 0x48990A396b4095D234236134e263b3f23c3227E6; //Optimism WMT1 vault address
         vaultInterface = IERC4626(vaultAddress); //this initializes an interface with the vault
         
 
