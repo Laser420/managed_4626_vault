@@ -819,6 +819,12 @@ pragma solidity >=0.8.0;
      canInteract = b; 
     }
 
+//Non-standard - check if interactions are allowed...
+    function checkIfInteractionsAllowed() public view returns(bool)
+    {
+        return canInteract;
+    }
+
 /* Changing strategies:
     'beginStrategyChangeStrat' is called from the old strategy contract to set the newStrategy address.
     'beginStrategyChangeOp' is called from the operator to set the newStrategy address.
@@ -851,6 +857,8 @@ pragma solidity >=0.8.0;
     function transferFundsToStrategy() public onlyStrategy()
     {
         _updateUnderlying(); //make sure we have the right underlying value before transferring back
+
+        //There has to be some sort of failure here right? am I losing my mind?
         asset.safeTransfer(strategy, underlying_in_strategy); //transfer all of the underlying funds to the strategy
     }
 
