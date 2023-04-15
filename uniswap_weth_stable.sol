@@ -46,7 +46,9 @@ contract uniswap_weth_stable {
         customAddress = newCustom;
     }
 
-    function _getQuote(uint256 amountIn, address IN, address OUT) internal returns (uint256 amountOut)
+    //This should get any quote for a single pool trade...
+    //Returns the amount of the tokenOUT that would be received...and the gasFee associated
+    function _getQuote(uint256 amountIn, address IN, address OUT) internal returns (uint256 amountOut, uint256 gasEstimate)
     {
            IQuoterV2.QuoteExactInputSingleParams memory params =
                 IQuoterV2.QuoteExactInputSingleParams
@@ -59,10 +61,11 @@ contract uniswap_weth_stable {
                 });
             //uint160[] memory sqrtPriceX96AfterList;
             //uint32[] memory initializedTicksCrossedList;
-            uint256 gasEstimate;
-        
+        //Only worry about the amountOut and the gasEstimate..
         (amountOut, , , gasEstimate) = quoteRouterV2.quoteExactInputSingle(params);
     }
+
+    
 
     
 /*THIS CONTRACT NEEDS TO BE APPROVED BY THE CALLER OF THIS FUNCTION */
