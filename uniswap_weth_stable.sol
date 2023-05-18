@@ -19,18 +19,28 @@ contract uniswap_weth_stable {
          operator = msg.sender;
     }
 
-
+    //The address of the swap router
     address public constant swapAddy = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     ISwapRouter public immutable swapRouter = ISwapRouter(swapAddy);
+    //The address of the quoter router
     address public constant quoterAddy = 0x61fFE014bA17989E743c5F6cB21bF9697530B21e;
     IQuoterV2 quoteRouterV2 = IQuoterV2(quoterAddy);
 
-    
+    //Not using WETH9 (Goerli) this time around...
     address WETH9 = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
-    address USDC = 0x0000000000000000000000000000000000000000;
+    //The address of WETH on Goerli..
+    address WETH = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6;
+
+    //An address of USDC 
+    //https://goerli.etherscan.io/token/0xD87Ba7A50B2E7E660f678A895E4B72E7CB4CCd9C
+    address USDC = 0xD87Ba7A50B2E7E660f678A895E4B72E7CB4CCd9C;
+
+    //
     address DAI = 0x0000000000000000000000000000000000000000;
+
     address USDT = 0x0000000000000000000000000000000000000000;
+
     address customAddress = 0x0000000000000000000000000000000000000000;
 
     //A pool fee of 0.3%....have to set this to whatever a pool's fee is
@@ -74,7 +84,7 @@ contract uniswap_weth_stable {
     /// @dev The calling address must approve this contract to spend at least `amountIn` worth of its DAI for this function to succeed.
     /// @param amountIn The exact amount of DAI that will be swapped for WETH9.
     /// @return amountOut The amount of WETH9 received.
-    function swapExactInputSingle(uint256 amountIn) external returns (uint256 amountOut) {
+    function swapExactInputSingle(uint256 amountIn, address IN, address OUT) external returns (uint256 amountOut) {
        
         // Transfer the specified amount of DAI to this contract.
         //TransferHelper.safeTransferFrom(DAI, msg.sender, address(this), amountIn);
@@ -86,8 +96,8 @@ contract uniswap_weth_stable {
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
         ISwapRouter.ExactInputSingleParams memory params =
             ISwapRouter.ExactInputSingleParams({
-                tokenIn: DAI,
-                tokenOut: WETH9,
+                tokenIn: IN,
+                tokenOut: OUT,
                 fee: poolFee,
                 recipient: msg.sender,
                 deadline: block.timestamp,
